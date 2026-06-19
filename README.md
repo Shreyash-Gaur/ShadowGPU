@@ -14,19 +14,26 @@ It provides a 100% headless, browser-free experience with a real-time streaming 
 graph LR
     A[Local Script<br/>localhost:11434] --> B[local_proxy.py<br/>Request Router]
     B --> C{Auth Headers<br/>Injected}
-    C -->|ngrok-skip-browser-warning<br/>Basic Auth| D[Ngrok Tunnel<br/>HTTPS Edge]
-    D --> E[Kaggle Kernel<br/>Dual Tesla T4]
-    E --> F[Ollama Server<br/>GPU VRAM Locked]
-    F --> G[LLM Node<br/>Qwen 3.6 32B<br/>deploy_secure_llm.py]
-    F --> H[Embedding Node<br/>Qwen3-Embedding<br/>deploy_secure_emb.py]
+
+    C -->|LLM requests| D1[Ngrok Tunnel A]
+    D1 --> E1[Kaggle Kernel A<br/>Dual Tesla T4]
+    E1 --> F1[Ollama Server A<br/>Qwen 3.6 32B<br/>deploy_secure_llm.py]
+
+    C -->|Embedding requests<br/>dual-node only| D2[Ngrok Tunnel B]
+    D2 --> E2[Kaggle Kernel B]
+    E2 --> F2[Ollama Server B<br/>Qwen3-Embedding<br/>deploy_secure_emb.py]
 
     style A fill:#1a1a2e,color:#e0e0e0
     style B fill:#16213e,color:#e0e0e0
-    style D fill:#0f3460,color:#e0e0e0
-    style E fill:#533483,color:#e0e0e0
-    style G fill:#e94560,color:#fff
-    style H fill:#e94560,color:#fff
+    style D1 fill:#0f3460,color:#e0e0e0
+    style D2 fill:#0f3460,color:#e0e0e0
+    style E1 fill:#533483,color:#e0e0e0
+    style E2 fill:#533483,color:#e0e0e0
+    style F1 fill:#e94560,color:#fff
+    style F2 fill:#e94560,color:#fff
 ```
+
+
 
 **Data path:** Local script → Proxy (injects auth headers) → Ngrok HTTPS tunnel → Kaggle kernel → Ollama (VRAM-locked)
 
@@ -52,9 +59,9 @@ Before using the deployment commands, your local terminal must be linked to your
 This is the fastest method if you have a web browser on your machine.
 
 1. Open your terminal and run:
-   ```bash
+  ```bash
    kaggle auth login
-   ```
+  ```
 2. The terminal will output a secure URL. Click or copy-paste it into your browser.
 3. Log into Kaggle and click **Authorize**. Your terminal will instantly confirm the successful connection.
 
@@ -65,12 +72,20 @@ Use this if you are running from a remote server without a web browser.
 1. Go to **Kaggle.com** → Click your profile picture → **Settings**.
 2. Scroll down to the **API** section and click **Create New Token**. This downloads a `kaggle.json` file.
 3. Move that file to your hidden credentials directory:
-   - **Linux/WSL:** `~/.kaggle/kaggle.json`
-   - **Windows:** `C:\Users\<Your-Username>\.kaggle\kaggle.json`
+  - **Linux/WSL:** `~/.kaggle/kaggle.json`
+  - **Windows:** `C:\Users\<Your-Username>\.kaggle\kaggle.json`
 4. Secure the file permissions (Linux/WSL only):
-   ```bash
+  ```bash
    chmod 600 ~/.kaggle/kaggle.json
-   ```
+  ```
+
+### Local Environment Setup
+
+Install the Python dependencies needed to run the local proxy and client examples:
+
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
@@ -96,6 +111,7 @@ shadowgpu/
 ├── local_proxy.py                  # Intelligent request router (single-node)
 ├── kernel-metadata.json            # Kaggle deployment config
 ├── sample.env                      # Environment template
+├── requirements.txt                # Local Python dependencies
 └── README.md
 ```
 
@@ -114,10 +130,12 @@ Open the file and replace `"id": "YOUR KAGGLE USERNAME/shadowgpu-server"` with y
 Open the script you plan to push and fill in the two constants at the top:
 
 ```python
-NGROK_TOKEN = ""          # ← Paste your Ngrok Authtoken here
+NGROK_TOKEN = "YOUR_NGROK_TOKEN"          # ← Paste your Ngrok Authtoken here
 NTFY_CHANNEL = "YOUR_NTFY_CHANNEL"  # ← Any unique random string
 ```
-
+```markdown
+⚠️ **Before you push to GitHub:** once you paste a real token in, this is the literal file `git` tracks. Don't `git add` the filled-in version. Keep a second, gitignored copy (e.g. `deploy_secure_llm.local.py`) with your real token — that's the one you point `kaggle kernels push` at. The tracked copy in GitHub stays empty.
+```
 Because Ngrok automatically binds your account's permanent static domain to the authtoken, your server will always launch on the exact same URL — no `.env` updates needed on restarts.
 
 - **Cloudflare (Secure only):** Add your `CLOUDFLARE_TUNNEL_TOKEN` from your Zero Trust dashboard.
@@ -148,7 +166,6 @@ ShadowGPU supports two tunneling providers and three deployment modes. Your prox
 - **Variant A: Quick Tunnel (`tunnels/cloudflare/deploy_open.py`)**
   - Requires no accounts or tokens. Generates a randomized `trycloudflare.com` URL that changes on every deploy. You must manually update your local `.env` on every kernel restart.
   - Best for: zero-setup, rapid temporary testing.
-
 - **Variant B: Zero Trust (`tunnels/cloudflare/deploy_secure.py`)**
   - Requires a free Cloudflare account and a custom domain managed by Cloudflare DNS. Maps your remote Kaggle GPUs to a permanent subdomain (e.g., `gpu.yourdomain.com`).
   - Best for: persistent personal infrastructure where you own a domain.
@@ -160,7 +177,6 @@ Ngrok grants a free permanent static domain out of the box — claim yours at **
 - **Variant A: Open Tunnel (`tunnels/ngrok/deploy_open.py`)**
   - Authenticates via your token and routes through your permanent static domain. URL never changes on kernel restart, but has no access control beyond the URL itself.
   - Best for: personal experimentation where convenience matters more than access control.
-
 - **Variant B: Protected Tunnel (`tunnels/ngrok/deploy_secure.py`)**
   - Routes through your permanent static domain while enforcing HTTP Basic Authentication at the Ngrok edge. Unauthenticated requests receive a `401 Unauthorized`. Your local proxy injects the required Base64 credentials silently.
   - Best for: securing the endpoint against accidental public exposure.
@@ -220,6 +236,7 @@ kaggle kernels push -p . --accelerator NvidiaTeslaT4
 Both kernels are now running independently. Each broadcasts its own tunnel URL to your `NTFY_CHANNEL` when ready.
 
 Both nodes get independent kill switches:
+
 ```bash
 curl -d "SHUTDOWN_LLM_NODE" ntfy.sh/YOUR_NTFY_CHANNEL
 curl -d "SHUTDOWN_EMBED_NODE" ntfy.sh/YOUR_NTFY_CHANNEL
@@ -255,17 +272,21 @@ curl -d "SHUTDOWN_EMBED_NODE" ntfy.sh/YOUR_NTFY_CHANNEL
 ### Single-Node (Cloudflare or Ngrok variants A/B)
 
 **Step 1 — Deploy**
+
 ```bash
-kaggle kernels push -p .
+kaggle kernels push -p . --accelerator NvidiaTeslaT4
 ```
 
 **Step 2 — Wait for the ping** (open a second terminal tab)
+
 ```bash
 curl -s ntfy.sh/YOUR_NTFY_CHANNEL/raw
 ```
+
 After ~3–5 minutes: `🚀 SERVER IS LIVE! Connect your local API here: https://your-tunnel-url.com`
 
 **Step 3 — Start the proxy**
+
 ```bash
 python local_proxy.py
 ```
@@ -285,9 +306,11 @@ kaggle kernels push -p . --accelerator NvidiaTeslaT4
 ```
 
 **Step 2 — Wait for both pings** (both nodes post to the same `NTFY_CHANNEL`)
+
 ```bash
 curl -s ntfy.sh/YOUR_NTFY_CHANNEL/raw
 ```
+
 You'll see two `🚀 SERVER IS LIVE!` messages with different tunnel URLs. Copy them into your `.env`:
 
 ```env
@@ -296,9 +319,11 @@ REMOTE_HOST_EMB=https://your-emb-domain.ngrok-free.dev
 ```
 
 **Step 3 — Start the dual proxy**
+
 ```bash
 python tunnels/ngrok_dual/dual_local_proxy.py
 ```
+
 Routes `localhost:11434` automatically — `/api/embed` → embedding node, everything else → LLM node. Your application code needs no knowledge of either tunnel URL.
 
 ### Step 4: Code Normally
@@ -457,4 +482,4 @@ curl -d "SHUTDOWN_EMBED_NODE" ntfy.sh/YOUR_NTFY_CHANNEL
 
 ## 📄 License
 
-MIT
+MIT — see [LICENSE](LICENSE) for the full text.
