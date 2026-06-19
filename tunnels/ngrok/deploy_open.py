@@ -4,7 +4,7 @@ import time
 import requests
 
 # --- SECRETS ---
-NGROK_TOKEN = "YOUR_GROK_TOKEN"  # <--- Your ngrok token!
+NGROK_TOKEN = "YOUR_NGROK_TOKEN"  # <--- Your ngrok token!
 NTFY_CHANNEL = "YOUR_NTFY_CHANNEL" # <--- Your ntfy channel!
 
 def send_log(message):
