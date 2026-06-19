@@ -1,10 +1,10 @@
 # 🌑 ShadowGPU: Headless Kaggle GPU Tunneling
 
-ShadowGPU is a lightweight, zero-cost architecture that lets you run massive Large Language Models (like the 32B Qwen 3.6) on Kaggle's free dual Tesla T4 GPUs and reach them directly from your local development environment — no browser, no GUI, no cloud bill.
+ShadowGPU is a lightweight architecture for personal AI research that lets you run Large Language Models (like Qwen 3.6 32B) on Kaggle's free dual Tesla T4 GPUs from your local development environment — headless, browser-free, and within Kaggle's weekly quota limits.
 
-It provides a 100% headless, browser-free experience with a real-time streaming kill switch to preserve your Kaggle compute quotas.
+It provides a 100% headless, browser-free experience with a real-time streaming kill switch designed to keep usage within Kaggle's compute quota limits — spin it up for a session, shut it down when done.
 
-> **Research & Experimentation Use:** This project is designed for personal AI research and local experimentation. Treat your Kaggle GPU quota as the finite shared resource it is — spin kernels up when you need them, kill them promptly when you don't.
+> **⚠️ Research & Experimentation Use Only:** This project is intended strictly for short-burst personal AI research within Kaggle's Acceptable Use Policy. Kaggle's free GPU quota (30 hrs/week) is a shared community resource — this tool is designed around that constraint, not against it. Do not use this for persistent or always-on deployments.
 
 ---
 
@@ -41,7 +41,7 @@ graph LR
 
 ## ✨ Key Features
 
-- **Massive Compute:** Run 24GB+ LLMs on Dual 16GB Tesla T4 GPUs for free.
+- **Research-Grade Compute:** Run 24GB+ LLMs on Dual 16GB Tesla T4 GPUs within Kaggle's free weekly quota for personal experimentation and development.
 - **Ngrok Tunneling:** Exposes the remote Ollama server securely to the public internet — OS-agnostic (works across WSL, Windows, Mac).
 - **Zero Cold-Starts:** Forces VRAM locking (`KEEP_ALIVE="-1"`) to guarantee 50+ tokens/second inference speeds.
 - **Dual-Node Split:** Dedicated `ngrok_dual/` scripts run LLM and embedding models on separate Kaggle kernels simultaneously, giving each model its own tunnel and kill switch.
@@ -183,7 +183,9 @@ Ngrok grants a free permanent static domain out of the box — claim yours at **
 
 ### 🔀 Variant C: Dual-Node Split (`tunnels/ngrok_dual/`)
 
-The most capable mode. Runs **two separate Kaggle kernels** simultaneously — one dedicated to the LLM (Qwen 3.6 32B on full dual-T4 VRAM), one to embeddings (Qwen3-Embedding on a second kernel). The `dual_local_proxy.py` routes locally by path: `/api/embed` → embedding node, everything else → LLM node. Both kernels run under the same Kaggle account; the weekly 30-hour quota is shared, so running them in parallel burns it at 2× the rate.
+The most capable mode. Runs **two separate Kaggle kernels** simultaneously — one dedicated to the LLM (Qwen 3.6 32B on full dual-T4 VRAM), one to embeddings (Qwen3-Embedding on a second kernel). The `dual_local_proxy.py` routes locally by path: `/api/embed` → embedding node, everything else → LLM node. 
+
+Both kernels run under the same Kaggle account; the weekly 30-hour quota is shared, so running them in parallel burns it at 2× the rate. Use dual-node only for short, focused sessions — it exhausts your weekly allotment quickly and extended use risks violating Kaggle's resource policies.
 
 #### Step-by-step: pushing both nodes
 
@@ -456,7 +458,7 @@ Because `local_proxy.py` emulates a local Ollama server on `http://localhost:114
 
 ### 🔄 Multi-Agent & LLM Orchestration
 
-- **LangChain & LangGraph:** Full support for stateful multi-agent computation graphs — run long recursive agent loops for free.
+- **LangChain & LangGraph:** Full support for stateful multi-agent computation graphs — ideal for local development and experimentation with multi-agent architectures.
 - **CrewAI & AutoGen:** Multi-agent pipelines targeting the local proxy port directly.
 
 ### 🎛️ Local Compatibility Layers
