@@ -133,9 +133,9 @@ Open the script you plan to push and fill in the two constants at the top:
 NGROK_TOKEN = "YOUR_NGROK_TOKEN"          # ← Paste your Ngrok Authtoken here
 NTFY_CHANNEL = "YOUR_NTFY_CHANNEL"  # ← Any unique random string
 ```
-```markdown
-⚠️ **Before you push to GitHub:** once you paste a real token in, this is the literal file `git` tracks. Don't `git add` the filled-in version. Keep a second, gitignored copy (e.g. `deploy_secure_llm.local.py`) with your real token — that's the one you point `kaggle kernels push` at. The tracked copy in GitHub stays empty.
-```
+
+> ⚠️ **Before you push to GitHub:** once you paste a real token in, this is the literal file `git` tracks. Don't `git add` the filled-in version. Keep a second, gitignored copy (e.g. `deploy_secure_llm.local.py`) with your real token — that's the one you point `kaggle kernels push` at. The tracked copy in GitHub stays empty.
+
 Because Ngrok automatically binds your account's permanent static domain to the authtoken, your server will always launch on the exact same URL — no `.env` updates needed on restarts.
 
 - **Cloudflare (Secure only):** Add your `CLOUDFLARE_TUNNEL_TOKEN` from your Zero Trust dashboard.
