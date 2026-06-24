@@ -12,16 +12,16 @@ It provides a 100% headless, browser-free experience with a real-time streaming 
 
 ```mermaid
 graph LR
-    A[Local Script<br/>localhost:11434] --> B[local_proxy.py<br/>Request Router]
+    A[Local Script<br/>localhost:11434] --> B[dual_local_proxy.py<br/>Request Router]
     B --> C{Auth Headers<br/>Injected}
 
     C -->|LLM requests| D1[Ngrok Tunnel A]
     D1 --> E1[Kaggle Kernel A<br/>Dual Tesla T4]
-    E1 --> F1[Ollama Server A<br/>Qwen 3.6 32B<br/>deploy_secure_llm.py]
+    E1 --> F1[Ollama Server A<br/>Qwen3.6-35B-A3B<br/>deploy_secure_llm.py]
 
     C -->|Embedding requests<br/>dual-node only| D2[Ngrok Tunnel B]
     D2 --> E2[Kaggle Kernel B]
-    E2 --> F2[Ollama Server B<br/>Qwen3-Embedding<br/>deploy_secure_emb.py]
+    E2 --> F2[Ollama Server B<br/>Qwen3-Embedding:8B<br/>deploy_secure_emb.py]
 
     style A fill:#1a1a2e,color:#e0e0e0
     style B fill:#16213e,color:#e0e0e0
